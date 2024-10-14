@@ -77,6 +77,7 @@ function Authentification() {
           {showDropdown && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md overflow-hidden shadow-xl z-10" style={{top: '100%'}}>
               <button onClick={() => navigate('/profile')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Hồ sơ</button>
+              <button onClick={() => navigate('/checkout/order-history')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Lịch sử mua hàng</button>
               <button onClick={() => navigate('/settings')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Cài đặt</button>
               <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Đăng xuất</button>
             </div>
@@ -97,3 +98,5 @@ function Authentification() {
 }
 
 export default Authentification;
+
+

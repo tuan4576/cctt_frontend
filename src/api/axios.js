@@ -11,10 +11,10 @@ const axiosInstance = axios.create({
 
 // Add configuration for form-data when sending images
 axiosInstance.interceptors.request.use((config: AxiosRequestConfig) => {
-    const token = localStorage.getItem('user_token');
-    if (token) {
-        config.headers['Authorization'] = `Bearer ${token}`;
-    }
+        const token = localStorage.getItem('user_token');
+        if (token) {
+            config.headers['Authorization'] = `Bearer ${token}`;
+        }
     // Ensure PATCH requests are properly handled
     if (config.method?.toLowerCase() === 'patch') {
         config.headers['Content-Type'] = 'application/json';
