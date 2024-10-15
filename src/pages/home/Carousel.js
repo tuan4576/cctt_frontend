@@ -133,7 +133,7 @@ function Carousel() {
                   </div>
                   <div>
                     <h3 className="text-lg font-extrabold">{product.name}</h3>
-                    <p className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm mt-2`}>{product.description}</p>
+                    {/* <p className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm mt-2`}>{product.description}</p> */}
                     <div className="flex justify-between items-center mt-4">
                       <div className="p-2 rounded-lg border border-gray-300 bg-gray-100">
                         <h4 className="text-lg font-bold text-green-600">{product.price ? product.price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }) : ''}</h4>

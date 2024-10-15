@@ -9,6 +9,6 @@ const apiOrder = {
     },
     getAll: (header) => {
         return axiosInstance.get("/product/orders", header);
-    }
+    },
 }
 export default apiOrder;
