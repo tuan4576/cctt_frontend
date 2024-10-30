@@ -20,6 +20,7 @@ import PaymentSuccessful from '../pages/home/PaymentSuccessful';
 import OrderHistory from '../pages/home/OrderHistory';
 import { useTheme } from '../ThemeContext';
 import OrderDetail from '../pages/home/OrderDetail';
+import Filter from '../pages/home/Filter';
 const Main = () => {
   const { theme } = useTheme(); // Sử dụng theme từ Context
 
@@ -45,7 +46,8 @@ const Main = () => {
           <Route path="/settings" element={<Setting />} />
           <Route path="/checkout/successful" element={<PaymentSuccessful />} />
           <Route path="/checkout/order-history" element={<OrderHistory />} />
-          <Route path="/order/:orderId" element={<OrderDetail />} />
+          <Route path="/order" element={<OrderDetail />} />
+          <Route path="/filter" element={<Filter />} />
         </Routes>
       </div>
     </main>

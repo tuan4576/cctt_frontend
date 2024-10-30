@@ -14,6 +14,7 @@ import Carousel from '../pages/home/Carousel'
 import Like from '../pages/home/Like'
 import TopSelling from '../pages/home/TopSelling'
 import Avatar from '../pages/auth/Avatar';
+import ChatInterface from '../Component/ChatInterface';
 function Home(props) {
   return (
     <div>
@@ -29,24 +30,47 @@ function Home(props) {
       {/* <Like /> */}
       {/* <TopSelling /> */}
       <div className="mt-10 fixed bottom-10 right-5 z-50 flex flex-col items-end space-y-4">
-        <img 
-          src={PhoneIcon} 
-          alt="Phone Icon" 
-          className="w-11 h-11 mr-2 cursor-pointer animate-gentle-shake"
-          style={{
-            animation: 'gentleShake 2s ease-in-out infinite',
-            transformOrigin: '50% 50%',
-          }}
-        />
+        <div>
           <img 
-            src={ZaloIcon} 
-            alt="Zalo Icon" 
-            className="w-22 h-22 cursor-pointer animate-gentle-shake"
+            src={PhoneIcon} 
+            alt="Phone Icon" 
+            className="w-11 h-11 mr-2 cursor-pointer animate-gentle-shake"
             style={{
-              animation: 'gentleShake 2s ease-in-out infinite',
+              animation: 'gentleShake 2s ease-in-out infinite', 
               transformOrigin: '50% 50%',
             }}
+            onClick={() => {
+              const chatInterface = document.getElementById('chat-interface');
+              if (chatInterface) {
+                chatInterface.style.display = chatInterface.style.display === 'none' ? 'block' : 'none';
+              }
+            }}
           />
+          <div id="chat-interface" style={{
+            display: 'none', 
+            position: 'fixed',
+            top: '50px', 
+            bottom: '100px', 
+            right: '100px',
+            zIndex: 1000
+          }}>
+            <ChatInterface />
+          </div>
+        </div>
+
+            <img 
+              src={ZaloIcon} 
+              alt="Zalo Icon" 
+              className="w-13 h-13 mr-1 cursor-pointer animate-gentle-shake"
+              style={{
+                animation: 'gentleShake 2s ease-in-out infinite',
+                transformOrigin: '50% 50%',
+              }}
+              onClick={() => {
+                window.open('https://zalo.me/0941729907', '_blank');
+              }}
+            />
+          
         <img 
           src={MessengerIcon} 
           alt="Messenger Icon" 
@@ -54,6 +78,9 @@ function Home(props) {
           style={{
             animation: 'gentleShake 2s ease-in-out infinite',
             transformOrigin: '50% 50%',
+          }}
+          onClick={() => {
+            window.open('https://m.me/100094673529726', '_blank');
           }}
         />
       </div>

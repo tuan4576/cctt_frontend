@@ -3,7 +3,7 @@ import axiosInstance from "./axios";
 const apiWishlist = {
     // create
     addToWishlist: (data, header) => {
-        return axiosInstance.post("/product/wishlist", data, header);
+        return axiosInstance.post("/products/wishlist", data, header);
     },
 
     getWishListByPagination: (page, header) => {

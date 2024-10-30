@@ -51,6 +51,9 @@ const apiProduct = {
     getProductCategoryId: (id) => {
       return axiosInstance.get(`/product/categories/${id}`);  // Fetch products by category ID
     },
+  search: (name) => {
+    return axiosInstance.get(`/products/search/${name}`);
+  },
   
 }
 

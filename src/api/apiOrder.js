@@ -7,8 +7,14 @@ const apiOrder = {
     getOrderById: (orderId) => {
         return axiosInstance.get(`/product/orders/${orderId}`);
     },
-    getAll: (header) => {
+    // getAll: (header) => {
+    //     return axiosInstance.get("/product/orders", header);
+    // },
+    getOrderHistory: (header) => {
         return axiosInstance.get("/product/orders", header);
+    },
+    getOrderDetails: (header) => {
+        return axiosInstance.get(`/product/orders/details`, header);
     },
 }
 export default apiOrder;

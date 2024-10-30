@@ -1,24 +1,57 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../ThemeContext';
-import { Link } from 'react-router-dom';
+import apiOrder from '../../api/apiOrder';
+import { useNavigate } from 'react-router-dom';
+import Load from '../../Layouts/Loading';
 
 const OrderHistory = () => {
     const { theme } = useTheme();
     const [orders, setOrders] = useState([]);
+    const [displayedOrders, setDisplayedOrders] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const navigate = useNavigate();
+    const ordersPerPage = 5;
 
     useEffect(() => {
-        // Mock data for demonstration
-        const mockOrders = [
-            { id: 1, createdAt: '2023-07-01', totalAmount: 1500000, status: 'Đã giao' },
-            { id: 2, createdAt: '2023-07-05', totalAmount: 2000000, status: 'Đang xử lý' },
-            { id: 3, createdAt: '2023-07-10', totalAmount: 1800000, status: 'Đã hủy' },
-        ];
-        setOrders(mockOrders);
+        fetchOrderHistory();
     }, []);
+
+    useEffect(() => {
+        setDisplayedOrders(orders.slice(0, ordersPerPage));
+    }, [orders]);
+
+    const fetchOrderHistory = async () => {
+        try {
+            const token = localStorage.getItem('user_token');
+            if (!token) {
+                console.error('No user token found');
+                setIsLoading(false);
+                return;
+            }
+            const response = await apiOrder.getOrderHistory({
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            setOrders(response.data);
+            console.log(response.data);
+        } catch (error) {
+            console.error('Error fetching order history:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const loadMoreOrders = () => {
+        const currentLength = displayedOrders.length;
+        const newOrders = orders.slice(currentLength, currentLength + ordersPerPage);
+        setDisplayedOrders([...displayedOrders, ...newOrders]);
+    };
 
     const getStatusColor = (status) => {
         switch (status) {
             case 'Đã giao':
+            case 'completed':
                 return 'text-green-500';
             case 'Đang xử lý':
                 return 'text-yellow-500';
@@ -28,6 +61,18 @@ const OrderHistory = () => {
                 return 'text-gray-500';
         }
     };
+
+    const formatCurrency = (amount) => {
+        return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    };
+
+    const getStatusText = (status) => {
+        return status === 'completed' ? 'Mua hàng thành công' : status;
+    };
+
+    if (isLoading) {
+        return <Load />;
+    }
 
     return (
         <div className={`min-h-screen pt-40 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-800'}`}>
@@ -42,27 +87,42 @@ const OrderHistory = () => {
                                 <tr>
                                     <th className="px-4 py-3 text-left">Mã đơn hàng</th>
                                     <th className="px-4 py-3 text-left">Ngày đặt</th>
+                                    <th className="px-4 py-3 text-left">Số lượng</th>
                                     <th className="px-4 py-3 text-left">Tổng tiền</th>
                                     <th className="px-4 py-3 text-left">Trạng thái</th>
                                     <th className="px-4 py-3 text-left">Hành động</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {orders.map((order) => (
-                                    <tr key={order.id} className={`${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} border-b`}>
-                                        <td className="px-4 py-3">{order.id}</td>
-                                        <td className="px-4 py-3">{new Date(order.createdAt).toLocaleDateString()}</td>
-                                        <td className="px-4 py-3">{order.totalAmount.toLocaleString()}đ</td>
-                                        <td className={`px-4 py-3 ${getStatusColor(order.status)}`}>{order.status}</td>
+                                {displayedOrders.map((order) => (
+                                    <tr key={order.order_id} className={`${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} border-b`}>
+                                        <td className="px-4 py-3">{order.order_code}</td>
+                                        <td className="px-4 py-3">{new Date(order.order_date).toLocaleDateString()}</td>
+                                        <td className="px-4 py-3">{order.total_quantity}</td>
+                                        <td className="px-4 py-3">{formatCurrency(order.total_amount)}đ</td>
+                                        <td className={`px-4 py-3 ${getStatusColor(order.status)}`}>{getStatusText(order.status)}</td>
                                         <td className="px-4 py-3">
-                                            <Link to={`/order/${order.id}`} className={`${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-500 hover:bg-purple-600'} text-white px-4 py-2 rounded transition duration-300 ease-in-out`}>
+                                            <button
+                                                onClick={() => navigate(`/order`, { state: { orderItems: order.items } })}
+                                                className={`${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-500 hover:bg-purple-600'} text-white px-4 py-2 rounded transition duration-300 ease-in-out`}
+                                            >
                                                 Chi tiết
-                                            </Link>
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                )}
+                {displayedOrders.length < orders.length && (
+                    <div className="mt-6 text-center">
+                        <button
+                            onClick={loadMoreOrders}
+                            className={`${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-500 hover:bg-purple-600'} text-white px-6 py-3 rounded text-lg transition duration-300 ease-in-out`}
+                        >
+                            Xem thêm
+                        </button>
                     </div>
                 )}
                 <div className="mt-10 text-center">

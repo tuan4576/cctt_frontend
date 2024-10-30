@@ -3,7 +3,7 @@ import axiosInstance from "./axios";
 const apiCategory = {
 
   getAll: () => {
-    return axiosInstance.get("/categories");
+    return axiosInstance.get("/product/categories");
   },  
 
   getOne: (id) => {

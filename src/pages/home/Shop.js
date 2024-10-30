@@ -123,10 +123,8 @@ import { useTheme } from '../../ThemeContext';
 import apiProduct from '../../api/apiProduct';
 import Loading from '../../Layouts/Loading';
 import NoProducts from '../../Component/NotDefault';
-import Cookies from 'js-cookie';
-import apiShoppingCart from '../../api/apiShoppingCart';
-import { toast } from 'react-toastify';
 import { IMG_URL } from '../../api/config'
+import apiShoppingCart from '../../api/apiShoppingCart';
 
 const Shop = () => {
   const { theme } = useTheme();
@@ -136,6 +134,9 @@ const Shop = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 8;
+  const [showUpdateNotification, setShowUpdateNotification] = useState(false);
+  const [showErrorNotification, setShowErrorNotification] = useState(false);
+  const [showLoginNotification, setShowLoginNotification] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -170,6 +171,42 @@ const Shop = () => {
     fetchProducts();
   }, [selectedCategory]);
 
+  const setNotificationTimeout = (seconds) => {
+    setTimeout(() => {
+      setShowUpdateNotification(false);
+      setShowErrorNotification(false);
+      setShowLoginNotification(false);
+    }, seconds * 1000);
+  };
+
+  const handleAddToCart = async (product) => {
+    const token = localStorage.getItem('user_token');
+    if (!token) {
+      setShowLoginNotification(true);
+      setNotificationTimeout(3);
+      return;
+    }
+    try {
+      const data = { 
+        stock_id: product.stocks[0].id,
+        quantity: 1
+      };
+      const response = await apiShoppingCart.addToCart(data, {
+        headers: { 
+          Authorization: `Bearer ${token}` 
+        } 
+      });
+      if (response.status === 200) {
+        setShowUpdateNotification(true);
+        setNotificationTimeout(3);
+      }
+    } catch (error) {
+      console.log("Error response:", error.response);
+      setShowErrorNotification(true);
+      setNotificationTimeout(3);
+    }
+  };
+
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
   const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
@@ -192,38 +229,6 @@ const Shop = () => {
   const handleCategoryClick = (categoryId) => {
     setSelectedCategory(categoryId);
     setCurrentPage(1);
-  };
-  const handleAddToCart = async (stockId) => {
-    const token = Cookies.get('token');
-    if (!token) {
-      toast.error("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.");
-      return;
-    }
-
-    try {
-      const data = { 
-        stock_id: stockId.stocks[0].id,
-        quantity: 1
-      };
-      console.log("Data being sent to addToCart:", data);
-      const response = await apiShoppingCart.addToCart(data, {
-        headers: { 
-          Authorization: `Bearer ${token}` 
-        } 
-      });
-      console.log("Response from addToCart:", response);
-      if (response.status === 201) {
-        toast.success('Sản phẩm đã được thêm vào giỏ hàng');
-      }
-    } catch (error) {
-      console.error("Lỗi khi thêm sản phẩm vào giỏ hàng:", error);
-      console.log("Error response:", error.response);
-      if (error.response && error.response.status === 500) {
-        toast.error("Lỗi server. Vui lòng thử lại sau.");
-      } else {
-        toast.error("Có lỗi xảy ra. Vui lòng thử lại sau.");
-      }
-    }
   };
 
   return (
@@ -269,7 +274,7 @@ const Shop = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 max-xl:gap-4 gap-6">
               {currentProducts.map(product => (
-                <div key={product.id} className={`${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-800'} rounded-2xl p-5 cursor-pointer hover:-translate-y-2 transition-all duration-300 relative hover:shadow-xl`}>
+                <div key={product.id} className={`bg-white shadow-md border rounded-2xl p-5 cursor-pointer hover:-translate-y-2 transition-all duration-300 relative hover:shadow-xl`}>
                   <div className={`${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'} w-10 h-10 flex items-center justify-center rounded-full cursor-pointer absolute top-4 right-4 transition-colors duration-300`}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16px" className={`${theme === 'dark' ? 'fill-white' : 'fill-gray-800'} inline-block`} viewBox="0 0 64 64">
                       <path d="M45.5 4A18.53 18.53 0 0 0 32 9.86 18.5 18.5 0 0 0 0 22.5C0 40.92 29.71 59 31 59.71a2 2 0 0 0 2.06 0C34.29 59 64 40.92 64 22.5A18.52 18.52 0 0 0 45.5 4ZM32 55.64C26.83 52.34 4 36.92 4 22.5a14.5 14.5 0 0 1 26.36-8.33 2 2 0 0 0 3.27 0A14.5 14.5 0 0 1 60 22.5c0 14.41-22.83 29.83-28 33.14Z" data-original="#000000" />
@@ -285,7 +290,7 @@ const Shop = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-extrabold hover:text-blue-500 transition-colors duration-300">{product.name}</h3>
-                    <p className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm mt-2`}>{product.description}</p>
+                    
                     <div className="flex justify-between items-center mt-4">
                       <div>
                         <h4 className="text-lg font-bold">{product.price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}</h4>
@@ -293,9 +298,10 @@ const Shop = () => {
                           {(product.price * 1.2).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
                         </span>
                       </div>
-                      <button className="bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 transition-colors duration-300 transform hover:scale-110"
+                      <button 
+                        className="bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 transition-colors duration-300 transform hover:scale-110"
                         onClick={() => handleAddToCart(product)}
-                       >
+                      >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
@@ -339,6 +345,40 @@ const Shop = () => {
           </li>
         </ul>
       </div>
+
+      {/* Notifications */}
+      {showUpdateNotification && (
+        <div className="mt-2 bg-white shadow-[0_3px_10px_-3px_rgba(6,81,237,0.3)] border-t-4 border-green-500 text-gray-800 flex items-center w-max max-w-sm p-4 rounded-md fixed top-20 right-4 z-50"
+          role="alert"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-[18px] shrink-0 fill-green-500 inline mr-3" viewBox="0 0 512 512">
+            <path d="M256 512C114.51 512 0 397.49 0 256S114.51 0 256 0s256 114.51 256 256-114.51 256-256 256zm0-480C132.29 32 32 132.29 32 256s100.29 224 224 224 224-100.29 224-224S379.71 32 256 32zm144 224c0 88.37-71.63 160-160 160S80 344.37 80 256 151.63 96 240 96s160 71.63 160 160zm-80 0c0-44.18-35.82-80-80-80s-80 35.82-80 80 35.82 80 80 80 80-35.82 80-80z"/>
+          </svg>
+          <span>Thêm vào giỏ hàng thành công!</span>
+        </div>
+      )}
+
+      {showErrorNotification && (
+        <div className="mt-2 bg-white shadow-[0_3px_10px_-3px_rgba(6,81,237,0.3)] border-t-4 border-red-500 text-gray-800 flex items-center w-max max-w-sm p-4 rounded-md fixed top-20 right-4 z-50"
+          role="alert"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-[18px] shrink-0 fill-red-500 inline mr-3" viewBox="0 0 512 512">
+            <path d="M256 512C114.51 512 0 397.49 0 256S114.51 0 256 0s256 114.51 256 256-114.51 256-256 256zm0-480C132.29 32 32 132.29 32 256s100.29 224 224 224 224-100.29 224-224S379.71 32 256 32zm144 224c0 88.37-71.63 160-160 160S80 344.37 80 256 151.63 96 240 96s160 71.63 160 160zm-80 0c0-44.18-35.82-80-80-80s-80 35.82-80 80 35.82 80 80 80 80-35.82 80-80z"/>
+          </svg>
+          <span>Có lỗi xảy ra khi thêm vào giỏ hàng!</span>
+        </div>
+      )}
+
+      {showLoginNotification && (
+        <div className="mt-2 bg-white shadow-[0_3px_10px_-3px_rgba(6,81,237,0.3)] border-t-4 border-yellow-500 text-gray-800 flex items-center w-max max-w-sm p-4 rounded-md fixed top-20 right-4 z-50"
+          role="alert"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-[18px] shrink-0 fill-yellow-500 inline mr-3" viewBox="0 0 512 512">
+            <path d="M256 512C114.51 512 0 397.49 0 256S114.51 0 256 0s256 114.51 256 256-114.51 256-256 256zm0-480C132.29 32 32 132.29 32 256s100.29 224 224 224 224-100.29 224-224S379.71 32 256 32zm144 224c0 88.37-71.63 160-160 160S80 344.37 80 256 151.63 96 240 96s160 71.63 160 160zm-80 0c0-44.18-35.82-80-80-80s-80 35.82-80 80 35.82 80 80 80 80-35.82 80-80z"/>
+          </svg>
+          <span>Vui lòng đăng nhập để thêm vào giỏ hàng!</span>
+        </div>
+      )}
     </div>
   );
 };

@@ -113,7 +113,6 @@
 
 
 
-
 import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTheme } from '../../ThemeContext'
@@ -121,6 +120,8 @@ import apiProduct from '../../api/apiProduct';
 import Loading from '../../Layouts/Loading';
 import { FaShoppingCart, FaHeart } from 'react-icons/fa';
 import { IMG_URL } from '../../api/config'
+import Description from '../componet/description';
+import apiShoppingCart from '../../api/apiShoppingCart';
 
 function QuickView() {
   const [activeTab, setActiveTab] = useState('details');
@@ -128,12 +129,17 @@ function QuickView() {
   const { productId } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showUpdateNotification, setShowUpdateNotification] = useState(false);
+  const [showErrorNotification, setShowErrorNotification] = useState(false);
+  const [showLoginNotification, setShowLoginNotification] = useState(false);
+  const [notificationTimeout, setNotificationTimeout] = useState(3);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const response = await apiProduct.getProductById(productId);
         setProduct(response.data);
+        console.log(response.data);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching product:', error);
@@ -143,6 +149,52 @@ function QuickView() {
 
     fetchProduct();
   }, [productId]);
+
+  useEffect(() => {
+    let timer;
+    if (showUpdateNotification || showErrorNotification || showLoginNotification) {
+      timer = setInterval(() => {
+        setNotificationTimeout((prevTime) => {
+          if (prevTime <= 1) {
+            clearInterval(timer);
+            setShowUpdateNotification(false);
+            setShowErrorNotification(false);
+            setShowLoginNotification(false);
+            return 3;
+          }
+          return prevTime - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [showUpdateNotification, showErrorNotification, showLoginNotification]);
+
+  const handleAddToCart = async () => {
+    const token = localStorage.getItem('user_token');
+    if (!token) {
+      setShowLoginNotification(true);
+      setNotificationTimeout(3);
+      return;
+    }
+
+    try {
+      const data = {
+        stock_id: product.stocks[0].id,
+        quantity: 1
+      };
+      await apiShoppingCart.addToCart(data, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      setShowUpdateNotification(true);
+      setNotificationTimeout(3);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      setShowErrorNotification(true);
+      setNotificationTimeout(3);
+    }
+  };
 
   if (loading) {
     return <Loading />;
@@ -159,80 +211,118 @@ function QuickView() {
 
   return (
     <div>
-      <div className={`font-sans pt-[100px] pb-[100px] ${theme === 'dark' ? 'bg-[#1A202C] text-gray-300' : 'bg-gray-100 text-gray-600'} pt-20`}>
+      <div className={`font-sans pt-[100px] pb-[100px] ${theme === 'dark' ? 'bg-[#1A202C] text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
         <div className="p-4 max-w-6xl max-md:max-w-xl mx-auto">
           <div className="grid items-start grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="w-full lg:sticky top-0 flex gap-3">
-              <img src={`${IMG_URL}/image/${product.photo}`} alt={product.name} className="h-full w-full object-contain" />
-              {/* You may need to adjust this part based on your product image structure */}
+            {/* Image Section */}
+            <div className="w-full lg:sticky top-0">
+              <img 
+                src={`${IMG_URL}/image/${product.photo}`}
+                alt={product.name}
+                className="w-full h-auto rounded-lg shadow-md"
+              />
             </div>
-            <div>
-              <h2 className={`text-2xl max-sm:text-2xl font-bold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>{product.name}</h2>
-              <div className="mt-8">
-                <h3 className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-4xl max-sm:text-3xl font-bold`}>{formatPrice(product.price)}</h3>
+
+            {/* Content Section */}
+            <div className="space-y-6">
+              <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>
+                {product.name}
+              </h2>
+
+              <div className={`text-3xl font-bold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>
+                {formatPrice(product.price)}
               </div>
-              {/* Add more product details here */}
-              
-              {/* Add to Cart and Favorite buttons */}
-              <div className="mt-8 flex space-x-4">
-                <button className={`flex items-center justify-center px-6 py-3 ${theme === 'dark' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white rounded-full transition duration-300 shadow-lg hover:shadow-xl`}>
-                  <FaShoppingCart className="mr-2 text-xl" />
-                  <span className="font-semibold">Add to Cart</span>
-                </button>
-                <button className={`flex items-center justify-center w-12 h-12 ${theme === 'dark' ? 'bg-red-600 hover:bg-red-700' : 'bg-red-500 hover:bg-red-600'} text-white rounded-full transition duration-300 shadow-lg hover:shadow-xl`}>
-                  <FaHeart className="text-xl" />
-                </button>
-              </div>
-              
-              {/* Tab Navigation */}
-              <div className={`flex border-b mt-10 ${theme === 'dark' ? 'border-gray-500' : 'border-gray-400'}`}>
-                <button
-                  onClick={() => setActiveTab('details')}
-                  className={`px-4 py-2 focus:outline-none ${
-                    activeTab === 'details' ? `border-b-2 ${theme === 'dark' ? 'border-blue-400' : 'border-blue-500'} font-semibold` : ''
-                  }`}
+
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <button 
+                  onClick={handleAddToCart}
+                  className={`flex-1 py-3 px-6 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}
                 >
-                  Details
+                  <FaShoppingCart className="inline mr-2" />
+                  Add to Cart
                 </button>
-                <button
-                  onClick={() => setActiveTab('description')}
-                  className={`px-4 py-2 focus:outline-none ${
-                    activeTab === 'description' ? `border-b-2 ${theme === 'dark' ? 'border-blue-400' : 'border-blue-500'} font-semibold` : ''
-                  }`}
-                >
-                  Description
+                <button className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                  <FaHeart />
                 </button>
               </div>
 
+              {/* Tabs */}
+              <div className={`border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}>
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => setActiveTab('details')}
+                    className={`py-2 ${activeTab === 'details' ? 'border-b-2 border-gray-500' : ''}`}
+                  >
+                    Details
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('description')} 
+                    className={`py-2 ${activeTab === 'description' ? 'border-b-2 border-gray-500' : ''}`}
+                  >
+                    Description
+                  </button>
+                </div>
+              </div>
+
               {/* Tab Content */}
-              <div className="p-4">
+              <div className="py-4">
                 {activeTab === 'details' && (
-                  <div>
-                    <ul className={`space-y-3 list-disc pl-4 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {product.details && typeof product.details === 'string' ? (
-                        <li>{product.details}</li>
-                      ) : product.details && Array.isArray(product.details) ? (
-                        product.details.map((detail, index) => (
-                          <li key={index}>{detail}</li>
-                        ))
-                      ) : (
-                        <li>No details available</li>
-                      )}
-                    </ul>
-                  </div>
+                  <ul className="list-disc pl-4 space-y-2">
+                    {product.details && typeof product.details === 'string' ? (
+                      <li>{product.details}</li>
+                    ) : product.details && Array.isArray(product.details) ? (
+                      product.details.map((detail, index) => (
+                        <li key={index}>{detail}</li>
+                      ))
+                    ) : (
+                      <li>No details available</li>
+                    )}
+                  </ul>
                 )}
                 {activeTab === 'description' && (
-                  <div>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {product.description || 'No description available'}
-                    </p>
-                  </div>
+                  <p>{product.description || 'No description available'}</p>
                 )}
               </div>
+
+              <Description />
             </div>
           </div>
         </div>
       </div>
+
+      {showUpdateNotification && (
+        <div className="mt-2 bg-white shadow-[0_3px_10px_-3px_rgba(6,81,237,0.3)] border-t-4 border-green-500 text-gray-800 flex items-center w-max max-w-sm p-4 rounded-md fixed top-20 right-4 z-50"
+          role="alert"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-[18px] shrink-0 fill-green-500 inline mr-3" viewBox="0 0 512 512">
+            <path d="M256 512C114.51 512 0 397.49 0 256S114.51 0 256 0s256 114.51 256 256-114.51 256-256 256zm0-480C132.29 32 32 132.29 32 256s100.29 224 224 224 224-100.29 224-224S379.71 32 256 32zm144 224c0 88.37-71.63 160-160 160S80 344.37 80 256 151.63 96 240 96s160 71.63 160 160zm-80 0c0-44.18-35.82-80-80-80s-80 35.82-80 80 35.82 80 80 80 80-35.82 80-80z"/>
+          </svg>
+          <span>Thêm vào giỏ hàng thành công!</span>
+        </div>
+      )}
+
+      {showErrorNotification && (
+        <div className="mt-2 bg-white shadow-[0_3px_10px_-3px_rgba(6,81,237,0.3)] border-t-4 border-red-500 text-gray-800 flex items-center w-max max-w-sm p-4 rounded-md fixed top-20 right-4 z-50"
+          role="alert"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-[18px] shrink-0 fill-red-500 inline mr-3" viewBox="0 0 512 512">
+            <path d="M256 512C114.51 512 0 397.49 0 256S114.51 0 256 0s256 114.51 256 256-114.51 256-256 256zm0-480C132.29 32 32 132.29 32 256s100.29 224 224 224 224-100.29 224-224S379.71 32 256 32zm144 224c0 88.37-71.63 160-160 160S80 344.37 80 256 151.63 96 240 96s160 71.63 160 160zm-80 0c0-44.18-35.82-80-80-80s-80 35.82-80 80 35.82 80 80 80 80-35.82 80-80z"/>
+          </svg>
+          <span>Có lỗi xảy ra khi thêm vào giỏ hàng!</span>
+        </div>
+      )}
+
+      {showLoginNotification && (
+        <div className="mt-2 bg-white shadow-[0_3px_10px_-3px_rgba(6,81,237,0.3)] border-t-4 border-yellow-500 text-gray-800 flex items-center w-max max-w-sm p-4 rounded-md fixed top-20 right-4 z-50"
+          role="alert"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-[18px] shrink-0 fill-yellow-500 inline mr-3" viewBox="0 0 512 512">
+            <path d="M256 512C114.51 512 0 397.49 0 256S114.51 0 256 0s256 114.51 256 256-114.51 256-256 256zm0-480C132.29 32 32 132.29 32 256s100.29 224 224 224 224-100.29 224-224S379.71 32 256 32zm144 224c0 88.37-71.63 160-160 160S80 344.37 80 256 151.63 96 240 96s160 71.63 160 160zm-80 0c0-44.18-35.82-80-80-80s-80 35.82-80 80 35.82 80 80 80 80-35.82 80-80z"/>
+          </svg>
+          <span>Vui lòng đăng nhập để thêm vào giỏ hàng!</span>
+        </div>
+      )}
     </div>
   )
 }
